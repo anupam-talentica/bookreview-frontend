@@ -52,24 +52,24 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('bookreview-frontend/package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
 
     - name: Install dependencies
       run: npm ci
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Run ESLint
       run: |
         npx eslint src --format=json --output-file=eslint-report.json || true
         npx eslint src
       continue-on-error: true
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Run TypeScript type checking
       run: npx tsc --noEmit
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Run tests
       run: |
@@ -77,7 +77,7 @@ jobs:
       env:
         CI: true
       continue-on-error: true
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -85,8 +85,8 @@ jobs:
       with:
         name: test-results
         path: |
-          bookreview-frontend/coverage/
-          bookreview-frontend/eslint-report.json
+          coverage/
+          eslint-report.json
 
     - name: Comment PR with test results
       if: github.event_name == 'pull_request' && always()
@@ -94,7 +94,7 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          const path = './bookreview-frontend/coverage/coverage-summary.json';
+          const path = './coverage/coverage-summary.json';
           
           if (fs.existsSync(path)) {
             const coverage = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -147,27 +147,27 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('bookreview-frontend/package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
 
     - name: Install dependencies
       run: npm ci
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Run npm audit
       run: |
         npm audit --audit-level=high --json > audit-report.json || true
         npm audit --audit-level=high || echo "Security vulnerabilities found, but continuing..."
       continue-on-error: true
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Upload security reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports
-        path: bookreview-frontend/audit-report.json
+        path: audit-report.json
 
   # Build job
   build:
@@ -189,13 +189,13 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('bookreview-frontend/package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
 
     - name: Install dependencies
       run: npm ci
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Build application
       run: |
@@ -205,29 +205,29 @@ jobs:
       env:
         NODE_ENV: production
         VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Analyze bundle size
       run: |
         echo "📦 Bundle Analysis:"
-        if [ -d "bookreview-frontend/dist/assets" ]; then
+        if [ -d "dist/assets" ]; then
           echo "JavaScript bundles:"
-          ls -lh bookreview-frontend/dist/assets/*.js 2>/dev/null || echo "No JS files found"
+          ls -lh dist/assets/*.js 2>/dev/null || echo "No JS files found"
           echo "CSS bundles:"
-          ls -lh bookreview-frontend/dist/assets/*.css 2>/dev/null || echo "No CSS files found"
+          ls -lh dist/assets/*.css 2>/dev/null || echo "No CSS files found"
         fi
         
         # Check total build size
-        if [ -d "bookreview-frontend/dist" ]; then
+        if [ -d "dist" ]; then
           echo "Total build size:"
-          du -sh bookreview-frontend/dist/
+          du -sh dist/
         fi
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
-        path: bookreview-frontend/dist/
+        path: dist/
         retention-days: 30
 
   # Deploy to staging (on develop branch or manual trigger)
@@ -275,11 +275,11 @@ jobs:
       env:
         NODE_ENV: production
         VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Deploy to S3 Staging
       run: |
-        aws s3 sync bookreview-frontend/dist/ s3://bookreview-frontend-staging --delete
+        aws s3 sync dist/ s3://bookreview-frontend-staging --delete
         echo "✅ Deployed to staging environment"
 
     - name: Invalidate CloudFront (Staging)
@@ -341,11 +341,11 @@ jobs:
       env:
         NODE_ENV: production
         VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
-      working-directory: ./bookreview-frontend
+      working-directory: .
 
     - name: Deploy to S3 Production
       run: |
-        aws s3 sync bookreview-frontend/dist/ s3://${{ env.S3_BUCKET }} --delete
+        aws s3 sync dist/ s3://${{ env.S3_BUCKET }} --delete
         echo "✅ Deployed to production environment"
 
     - name: Invalidate CloudFront (Production)
