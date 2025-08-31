@@ -48,18 +48,22 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+        cache-dependency-path: 'bookreview-frontend/package-lock.json'
 
     - name: Install dependencies
       run: npm ci
+      working-directory: ./bookreview-frontend
 
     - name: Run ESLint
       run: |
         npx eslint src --format=json --output-file=eslint-report.json || true
         npx eslint src
       continue-on-error: true
+      working-directory: ./bookreview-frontend
 
     - name: Run TypeScript type checking
       run: npx tsc --noEmit
+      working-directory: ./bookreview-frontend
 
     - name: Run tests
       run: |
@@ -67,6 +71,7 @@ jobs:
       env:
         CI: true
       continue-on-error: true
+      working-directory: ./bookreview-frontend
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -74,8 +79,8 @@ jobs:
       with:
         name: test-results
         path: |
-          coverage/
-          eslint-report.json
+          bookreview-frontend/coverage/
+          bookreview-frontend/eslint-report.json
 
     - name: Comment PR with test results
       if: github.event_name == 'pull_request' && always()
@@ -83,7 +88,7 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          const path = './coverage/coverage-summary.json';
+          const path = './bookreview-frontend/coverage/coverage-summary.json';
           
           if (fs.existsSync(path)) {
             const coverage = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -132,22 +137,25 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+        cache-dependency-path: 'bookreview-frontend/package-lock.json'
 
     - name: Install dependencies
       run: npm ci
+      working-directory: ./bookreview-frontend
 
     - name: Run npm audit
       run: |
         npm audit --audit-level=high --json > audit-report.json || true
         npm audit --audit-level=high || echo "Security vulnerabilities found, but continuing..."
       continue-on-error: true
+      working-directory: ./bookreview-frontend
 
     - name: Upload security reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports
-        path: audit-report.json
+        path: bookreview-frontend/audit-report.json
 
   # Build job
   build:
@@ -165,9 +173,11 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+        cache-dependency-path: 'bookreview-frontend/package-lock.json'
 
     - name: Install dependencies
       run: npm ci
+      working-directory: ./bookreview-frontend
 
     - name: Build application
       run: |
@@ -176,28 +186,30 @@ jobs:
         echo "✅ Build completed successfully"
       env:
         NODE_ENV: production
+        VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
+      working-directory: ./bookreview-frontend
 
     - name: Analyze bundle size
       run: |
         echo "📦 Bundle Analysis:"
-        if [ -d "dist/assets" ]; then
+        if [ -d "bookreview-frontend/dist/assets" ]; then
           echo "JavaScript bundles:"
-          ls -lh dist/assets/*.js 2>/dev/null || echo "No JS files found"
+          ls -lh bookreview-frontend/dist/assets/*.js 2>/dev/null || echo "No JS files found"
           echo "CSS bundles:"
-          ls -lh dist/assets/*.css 2>/dev/null || echo "No CSS files found"
+          ls -lh bookreview-frontend/dist/assets/*.css 2>/dev/null || echo "No CSS files found"
         fi
         
         # Check total build size
-        if [ -d "dist" ]; then
+        if [ -d "bookreview-frontend/dist" ]; then
           echo "Total build size:"
-          du -sh dist/
+          du -sh bookreview-frontend/dist/
         fi
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
-        path: dist/
+        path: bookreview-frontend/dist/
         retention-days: 30
 
   # Deploy to staging (on develop branch or manual trigger)
@@ -245,10 +257,11 @@ jobs:
       env:
         NODE_ENV: production
         VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
+      working-directory: ./bookreview-frontend
 
     - name: Deploy to S3 Staging
       run: |
-        aws s3 sync dist/ s3://bookreview-frontend-staging --delete
+        aws s3 sync bookreview-frontend/dist/ s3://bookreview-frontend-staging --delete
         echo "✅ Deployed to staging environment"
 
     - name: Invalidate CloudFront (Staging)
@@ -310,10 +323,11 @@ jobs:
       env:
         NODE_ENV: production
         VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
+      working-directory: ./bookreview-frontend
 
     - name: Deploy to S3 Production
       run: |
-        aws s3 sync dist/ s3://${{ env.S3_BUCKET }} --delete
+        aws s3 sync bookreview-frontend/dist/ s3://${{ env.S3_BUCKET }} --delete
         echo "✅ Deployed to production environment"
 
     - name: Invalidate CloudFront (Production)
