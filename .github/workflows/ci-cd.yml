@@ -204,7 +204,7 @@ jobs:
         echo "✅ Deployed to staging environment"
 
     - name: Invalidate CloudFront (Staging)
-      if: secrets.CLOUDFRONT_STAGING_DIST_ID != ''
+      if: ${{ secrets.CLOUDFRONT_STAGING_DIST_ID != '' }}
       run: |
         aws cloudfront create-invalidation \
           --distribution-id ${{ secrets.CLOUDFRONT_STAGING_DIST_ID }} \
