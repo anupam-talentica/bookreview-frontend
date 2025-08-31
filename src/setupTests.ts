@@ -24,21 +24,25 @@ global.console = {
   warn: jest.fn(),
 };
 
-// Mock axios for API tests
-jest.mock('axios', () => ({
-  create: jest.fn(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    interceptors: {
-      request: { use: jest.fn() },
-      response: { use: jest.fn() },
-    },
-    defaults: {
-      headers: {
-        common: {},
+// Mock axios for API tests - only if axios is available
+try {
+  jest.mock('axios', () => ({
+    create: jest.fn(() => ({
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+      interceptors: {
+        request: { use: jest.fn() },
+        response: { use: jest.fn() },
       },
-    },
-  })),
-}));
+      defaults: {
+        headers: {
+          common: {},
+        },
+      },
+    })),
+  }));
+} catch (e) {
+  // Axios not available, skip mocking
+}
