@@ -171,8 +171,11 @@ jobs:
 
     - name: Build application
       run: |
+        # Build for production by default
         npm run build
         echo "✅ Build completed successfully"
+      env:
+        NODE_ENV: production
 
     - name: Analyze bundle size
       run: |
@@ -233,18 +236,34 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Build for Staging (if needed)
+      if: ${{ inputs.deploy_only != true }}
+      run: |
+        echo "🔄 Building for staging environment..."
+        npm run build
+        echo "✅ Staging build completed"
+      env:
+        NODE_ENV: production
+        VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
+
     - name: Deploy to S3 Staging
       run: |
         aws s3 sync dist/ s3://bookreview-frontend-staging --delete
         echo "✅ Deployed to staging environment"
 
     - name: Invalidate CloudFront (Staging)
+      env:
+        CLOUDFRONT_DIST_ID: ${{ secrets.CLOUDFRONT_STAGING_DIST_ID }}
       run: |
-        aws cloudfront create-invalidation \
-          --distribution-id ${{ secrets.CLOUDFRONT_STAGING_DIST_ID }} \
-          --paths "/*"
-        echo "✅ CloudFront cache invalidated"
-      continue-on-error: true
+        if [ -n "$CLOUDFRONT_DIST_ID" ]; then
+          echo "🔄 Invalidating CloudFront cache..."
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_DIST_ID \
+            --paths "/*"
+          echo "✅ CloudFront cache invalidated"
+        else
+          echo "⚠️ CloudFront distribution ID not configured, skipping cache invalidation"
+        fi
 
   # Deploy to production (on main branch or manual trigger)
   deploy-production:
@@ -282,17 +301,34 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Build for Production (if needed)
+      if: ${{ inputs.deploy_only != true }}
+      run: |
+        echo "🔄 Building for production environment..."
+        npm run build
+        echo "✅ Production build completed"
+      env:
+        NODE_ENV: production
+        VITE_API_BASE_URL: http://dev-bookreview-alb-516113639.ap-south-1.elb.amazonaws.com/api
+
     - name: Deploy to S3 Production
       run: |
         aws s3 sync dist/ s3://${{ env.S3_BUCKET }} --delete
         echo "✅ Deployed to production environment"
 
     - name: Invalidate CloudFront (Production)
+      env:
+        CLOUDFRONT_DIST_ID: ${{ env.CLOUDFRONT_DIST_ID }}
       run: |
-        aws cloudfront create-invalidation \
-          --distribution-id ${{ env.CLOUDFRONT_DIST_ID }} \
-          --paths "/*"
-        echo "✅ CloudFront cache invalidated"
+        if [ -n "$CLOUDFRONT_DIST_ID" ]; then
+          echo "🔄 Invalidating CloudFront cache..."
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_DIST_ID \
+            --paths "/*"
+          echo "✅ CloudFront cache invalidated"
+        else
+          echo "⚠️ CloudFront distribution ID not configured, skipping cache invalidation"
+        fi
 
     - name: Create GitHub Release
       if: github.event_name == 'push'
