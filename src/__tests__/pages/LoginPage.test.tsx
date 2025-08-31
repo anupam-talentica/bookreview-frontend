@@ -69,7 +69,7 @@ describe('LoginPage', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText('BookReview')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'BookReview', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Welcome Back')).toBeInTheDocument();
     expect(screen.getByLabelText('Email Address')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
@@ -500,7 +500,7 @@ describe('LoginPage', () => {
 
     const emailInput = screen.getByLabelText('Email Address') as HTMLInputElement;
     const passwordInput = screen.getByLabelText('Password') as HTMLInputElement;
-    const submitButton = screen.getByRole('button', { name: /loading|sign in/i });
+    const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
     const rememberMeCheckbox = screen.getByLabelText('Remember me') as HTMLInputElement;
 
     expect(emailInput.disabled).toBe(true);

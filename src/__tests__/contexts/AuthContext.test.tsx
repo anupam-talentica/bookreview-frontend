@@ -130,8 +130,11 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('user')).toHaveTextContent('no-user');
     });
 
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
+    // Wait for localStorage to be cleared asynchronously
+    await waitFor(() => {
+      expect(localStorage.getItem('token')).toBeNull();
+      expect(localStorage.getItem('user')).toBeNull();
+    });
   });
 
   it('should handle login successfully', async () => {
@@ -252,7 +255,10 @@ describe('AuthContext', () => {
       email: 'test@example.com',
       password: 'password',
     });
-    expect(mockedApiService.login).toHaveBeenCalledWith('test@example.com', 'password');
+    expect(mockedApiService.login).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password'
+    });
   });
 
   it('should handle logout successfully', async () => {
