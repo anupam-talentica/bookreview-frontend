@@ -154,26 +154,24 @@ jobs:
     - name: Analyze bundle size
       run: |
         echo "📦 Bundle Analysis:"
-        if [ -d "build/static/js" ]; then
+        if [ -d "dist/assets" ]; then
           echo "JavaScript bundles:"
-          ls -lh build/static/js/*.js 2>/dev/null || echo "No JS files found"
-        fi
-        if [ -d "build/static/css" ]; then
+          ls -lh dist/assets/*.js 2>/dev/null || echo "No JS files found"
           echo "CSS bundles:"
-          ls -lh build/static/css/*.css 2>/dev/null || echo "No CSS files found"
+          ls -lh dist/assets/*.css 2>/dev/null || echo "No CSS files found"
         fi
         
         # Check total build size
-        if [ -d "build" ]; then
+        if [ -d "dist" ]; then
           echo "Total build size:"
-          du -sh build/
+          du -sh dist/
         fi
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
-        path: build/
+        path: dist/
         retention-days: 30
 
   # Deploy to staging (on develop branch)
@@ -189,7 +187,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: build-artifacts
-        path: build/
+        path: dist/
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -200,7 +198,7 @@ jobs:
 
     - name: Deploy to S3 Staging
       run: |
-        aws s3 sync build/ s3://bookreview-frontend-staging --delete
+        aws s3 sync dist/ s3://bookreview-frontend-staging --delete
         echo "✅ Deployed to staging environment"
 
     - name: Invalidate CloudFront (Staging)
@@ -224,7 +222,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: build-artifacts
-        path: build/
+        path: dist/
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -235,7 +233,7 @@ jobs:
 
     - name: Deploy to S3 Production
       run: |
-        aws s3 sync build/ s3://${{ env.S3_BUCKET }} --delete
+        aws s3 sync dist/ s3://${{ env.S3_BUCKET }} --delete
         echo "✅ Deployed to production environment"
 
     - name: Invalidate CloudFront (Production)
