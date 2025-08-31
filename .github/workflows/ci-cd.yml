@@ -204,12 +204,12 @@ jobs:
         echo "✅ Deployed to staging environment"
 
     - name: Invalidate CloudFront (Staging)
-      if: ${{ secrets.CLOUDFRONT_STAGING_DIST_ID != '' }}
       run: |
         aws cloudfront create-invalidation \
           --distribution-id ${{ secrets.CLOUDFRONT_STAGING_DIST_ID }} \
           --paths "/*"
         echo "✅ CloudFront cache invalidated"
+      continue-on-error: true
 
   # Deploy to production (on main branch)
   deploy-production:
